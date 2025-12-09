@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Punch Hamel ❄</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#111111">
+
+<style>
+:root{
+  --bg:#111;
+  --card:#1b1b1b;
+  --field:#2d2d2d;
+  --field-focus:#3a3a3a;
+  --text:#ffffff;
+}
+body.light{
+  --bg:#f2f2f2;
+  --card:#ffffff;
+  --field:#e7e7e7;
+  --field-focus:#d4d4d4;
+  --text:#111111;
+}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial, sans-serif;
+  margin:0;
+  padding:30px;
+  transition:background .2s,color .2s;
+}
+.container{max-width:950px;margin:0 auto;}
+
+.card{
+  background:var(--card);
+  padding:20px;
+  margin-top:10px;
+  border-radius:10px;
+  border:1px solid #333;
+}
+
+input,select{
+  padding:8px;
+  margin:4px;
+  border-radius:6px;
+  background:var(--field);
+  color:var(--text);
+  border:1px solid #555;
+  font-weight:500;
+}
+input:focus,select:focus{
+  background:var(--field-focus);
+  border-color:#888;
+  outline:none;
+}
+
+button{
+  background:#333;
+  color:#fff;
+  padding:10px 14px;
+  border:none;
+  border-radius:6px;
+  margin:4px;
+  cursor:pointer;
+}
+button:hover{background:#444;}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:20px;
+}
+th,td{
+  border:1px solid #333;
+  padding:8px;
+  text-align:center;
+}
+
+.recap{
+  background:var(--card);
+  margin-top:15px;
+  padding:15px;
+  border-radius:10px;
+  border:1px solid #222;
+}
+</style>
+
+<script>
+// Enregistre le thème au changement
+function toggleTheme(){
+  document.body.classList.toggle('light');
+  const mode = document.body.classList.contains('light') ? 'light' : 'dark';
+  localStorage.setItem('theme', mode);
+}
+
+// Service worker PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>Punch Hamel ❄ — Calcul de salaire</h2>
+
+  <button id="themeToggle" onclick="toggleTheme()">Mode sombre / clair</button>
+  <button onclick="exportCSV()">Export CSV</button>
+
+  <div class="card">
+    Date
+    <input type="date" id="date">
+
+    Entrée
+    <select id="in"></select>
+
+    Sortie
+    <select id="out"></select>
+
+    Pause (min)
+    <input type="number" id="pause" value="0" style="width:70px;">
+
+    Taux ($/h)
+    <input type="number" id="rate" value="32" style="width:80px;">
+
+    <button onclick="addShift()">Ajouter</button>
+    <button onclick="clearAll()">Effacer</button>
+
+    <table id="table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Entrée</th>
+          <th>Sortie</th>
+          <th>Pause</th>
+          <th>Heures</th>
+          <th>Nuit</th>
+          <th>Weekend</th>
+          <th>Salaire</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="recap">
+      <b>Total heures :</b> <span id="th">0.00</span> h —
+      <b>Total salaire :</b> <span id="ts">0.00</span> $
+    </div>
+  </div>
+</div>
+
+<script>
+// Références DOM globales
+const inSelect      = document.getElementById('in');
+const outSelect     = document.getElementById('out');
+const dateInput     = document.getElementById('date');
+const pauseInput    = document.getElementById('pause');
+const rateInput     = document.getElementById('rate');
+const tableBody     = document.querySelector('#table tbody');
+const totalHoursEl  = document.getElementById('th');
+const totalSalaryEl = document.getElementById('ts');
+
+// Génération des heures 00 / 15 / 30 / 45
+function populateTimeSelect(select){
+  for (let h = 0; h < 24; h++) {
+    for (let m of [0,15,30,45]) {
+      const HH = String(h).padStart(2,'0');
+      const MM = String(m).padStart(2,'0');
+      const opt = document.createElement('option');
+      opt.value = `${HH}:${MM}`;
+      opt.textContent = `${HH}:${MM}`;
+      select.appendChild(opt);
+    }
+  }
+}
+
+// Différence en heures
+const hoursDiff = (a,b) => (b - a) / 36e5;
+
+// Chevauchement de deux intervalles de temps
+function overlap(startA, endA, startB, endB){
+  const start = Math.max(startA, startB);
+  const end   = Math.min(endA, endB);
+  return end > start ? hoursDiff(start, end) : 0;
+}
+
+// Fenêtre weekend : vendredi 17h → lundi 05h
+function weekendWindow(startDate){
+  const d = new Date(startDate);
+  const day = d.getDay(); // 0 = dimanche, 5 = vendredi
+  const fri = new Date(d);
+  const offset = (day - 5 + 7) % 7; // nb de jours à remonter pour vendredi
+  fri.setDate(d.getDate() - offset);
+  fri.setHours(17,0,0,0);
+
+  const mon = new Date(fri);
+  mon.setDate(fri.getDate() + 3);
+  mon.setHours(5,0,0,0);
+
+  return [fri, mon];
+}
+
+// Fenêtre nuit : 19h → 07h
+function nightWindow(startDate){
+  const ns = new Date(startDate);
+  ns.setHours(19,0,0,0);
+
+  const ne = new Date(startDate);
+  ne.setDate(ne.getDate() + 1);
+  ne.setHours(7,0,0,0);
+
+  return [ns, ne];
+}
+
+// Ajouter un shift
+function addShift(){
+  const d = dateInput.value;
+  const tin  = inSelect.value;
+  const tout = outSelect.value;
+  const pauseMin = parseFloat(pauseInput.value) || 0;
+  const rate = parseFloat(rateInput.value) || 0;
+
+  if (!d || !tin || !tout) {
+    alert("Veuillez saisir la date, l'entrée et la sortie.");
+    return;
+  }
+
+  let start = new Date(`${d}T${tin}`);
+  let end   = new Date(`${d}T${tout}`);
+  if (end <= start) {
+    // Fin le lendemain
+    end.setDate(end.getDate() + 1);
+  }
+
+  const totalHours = hoursDiff(start, end) - (pauseMin / 60);
+
+  // Weekend
+  const [wStart, wEnd] = weekendWindow(start);
+  const weekendHours = overlap(start.getTime(), end.getTime(), wStart.getTime(), wEnd.getTime());
+
+  // Nuit
+  const [nStart, nEnd] = nightWindow(start);
+  const nightHours = overlap(start.getTime(), end.getTime(), nStart.getTime(), nEnd.getTime());
+
+  // Salaire (nuit +5$ weekend +2$ nuit comme on avait)
+  const weekendBonus = 5;
+  const nightBonus   = 2;
+
+  const salary =
+    totalHours  * rate +
+    weekendHours * weekendBonus +
+    nightHours   * nightBonus;
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${d}</td>
+    <td>${tin}</td>
+    <td>${tout}</td>
+    <td>${pauseMin}</td>
+    <td>${totalHours.toFixed(2)}</td>
+    <td>${nightHours.toFixed(2)}</td>
+    <td>${weekendHours.toFixed(2)}</td>
+    <td>${salary.toFixed(2)}</td>
+    <td><button onclick="deleteRow(this)">X</button></td>
+  `;
+
+  tableBody.appendChild(tr);
+  recalc();
+  saveData();
+}
+
+function deleteRow(btn){
+  btn.closest('tr').remove();
+  recalc();
+  saveData();
+}
+
+// Recalcul des totaux
+function recalc(){
+  let totalH = 0;
+  let totalS = 0;
+
+  tableBody.querySelectorAll('tr').forEach(tr => {
+    const h = parseFloat(tr.children[4].textContent) || 0;
+    const s = parseFloat(tr.children[7].textContent) || 0;
+    totalH += h;
+    totalS += s;
+  });
+
+  totalHoursEl.textContent  = totalH.toFixed(2);
+  totalSalaryEl.textContent = totalS.toFixed(2);
+}
+
+// Effacer tout
+function clearAll(){
+  if (!confirm("Effacer tous les punchs ?")) return;
+  tableBody.innerHTML = "";
+  recalc();
+  saveData();
+}
+
+// Sauvegarde auto
+function saveData(){
+  localStorage.setItem('punch_rows', tableBody.innerHTML);
+  localStorage.setItem('punch_rate', rateInput.value);
+}
+
+// Chargement au démarrage
+function loadData(){
+  // Thème
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') {
+    document.body.classList.add('light');
+  }
+
+  // Punchs
+  const rows = localStorage.getItem('punch_rows');
+  if (rows) {
+    tableBody.innerHTML = rows;
+  }
+
+  // Taux
+  const savedRate = localStorage.getItem('punch_rate');
+  if (savedRate) {
+    rateInput.value = savedRate;
+  }
+
+  recalc();
+}
+
+// Export CSV
+function exportCSV(){
+  const header = ["Date","Entrée","Sortie","Pause","Heures","Nuit","Weekend","Salaire"];
+  const rows = [header];
+
+  tableBody.querySelectorAll('tr').forEach(tr => {
+    const cols = Array.from(tr.children).slice(0, 8).map(td => td.textContent);
+    rows.push(cols);
+  });
+
+  const csv = rows.map(r => r.join(",")).join("\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url  = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = "punch.csv";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', () => {
+  populateTimeSelect(inSelect);
+  populateTimeSelect(outSelect);
+  loadData();
+});
+</script>
+
+</body>
+</html>
