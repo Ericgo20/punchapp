@@ -331,8 +331,49 @@ function loadData(){
     rateInput.value = savedRate;
   }
 
-  recalc();
-}
+  function recalc(){
+  let rows=[...tableBody.querySelectorAll("tr")];
+
+  // Tri par date (du plus vieux au plus récent)
+  rows.sort((a,b)=>{
+    let da=new Date(a.children[0].innerText);
+    let db=new Date(b.children[0].innerText);
+    return da-db;
+  });
+
+  tableBody.innerHTML="";
+
+  let lastWeek=null,totalH=0,totalS=0;
+
+  rows.forEach(r=>{
+    let date=new Date(r.children[0].innerText);
+
+    // Trouve le LUNDI de la semaine
+    let weekStart=new Date(date);
+    weekStart.setDate(date.getDate() - ((date.getDay()+6)%7)); 
+    let key=weekStart.toISOString().slice(0,10);
+
+    // Ajoute un séparateur si nouvelle semaine
+    if(key!==lastWeek){
+      let sep=document.createElement("tr");
+      sep.innerHTML=`<td colspan="9" style="background:#00000055;
+      font-weight:bold;text-align:center;padding:6px;border:1px solid #333;">
+      📅 Semaine du <b>${key}</b></td>`;
+      tableBody.appendChild(sep);
+      lastWeek=key;
+    }
+
+    tableBody.appendChild(r);
+
+    totalH+=parseFloat(r.children[4].innerText)||0;
+    totalS+=parseFloat(r.children[7].innerText)||0;
+  });
+
+  totalHoursEl.textContent=totalH.toFixed(2);
+  totalSalaryEl.textContent=totalS.toFixed(2);
+
+  saveData();
+}}
 
 // Export CSV
 function exportCSV(){
