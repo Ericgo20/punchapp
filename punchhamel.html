@@ -281,21 +281,6 @@ function deleteRow(btn){
   saveData();
 }
 
-// Recalcul des totaux
-function recalc(){
-  let totalH = 0;
-  let totalS = 0;
-
-  tableBody.querySelectorAll('tr').forEach(tr => {
-    const h = parseFloat(tr.children[4].textContent) || 0;
-    const s = parseFloat(tr.children[7].textContent) || 0;
-    totalH += h;
-    totalS += s;
-  });
-
-  totalHoursEl.textContent  = totalH.toFixed(2);
-  totalSalaryEl.textContent = totalS.toFixed(2);
-}
 
 // Effacer tout
 function clearAll(){
@@ -331,14 +316,14 @@ function loadData(){
     rateInput.value = savedRate;
   }
 
-function recalc(){
-  // Toutes les lignes actuelles (y compris séparateurs)
+function recalc();
+  function recalc(){
   let allRows = [...tableBody.querySelectorAll("tr")];
 
-  // On garde seulement les vraies lignes de données
+  // garder seulement les lignes avec 8 colonnes (vraies données)
   let dataRows = allRows.filter(r => r.children.length >= 8);
 
-  // Tri des vraies lignes par date (ancienne -> récente)
+  // tri par date
   dataRows.sort((a,b)=>{
     let da = new Date(a.children[0].innerText);
     let db = new Date(b.children[0].innerText);
@@ -354,31 +339,28 @@ function recalc(){
   dataRows.forEach(r => {
     let date = new Date(r.children[0].innerText);
 
-    // Lundi de la semaine (0=dimanche -> on décale pour lundi)
+    // lundi de la semaine
     let weekStart = new Date(date);
     weekStart.setDate(date.getDate() - ((date.getDay() + 6) % 7));
-    let key = weekStart.toISOString().slice(0,10); // ex: 2025-12-08
+    let key = weekStart.toISOString().slice(0,10);
 
-    // Si on change de semaine -> on ajoute un séparateur
-    if (key !== lastWeekKey) {
+    // séparateur semaine
+    if(key !== lastWeekKey){
       let sep = document.createElement("tr");
       sep.innerHTML = `
-        <td colspan="9"
-            style="background:#00000055;
-                   font-weight:bold;
-                   text-align:center;
-                   padding:6px;
-                   border:1px solid #333;">
+        <td colspan="9" style="background:#00000055;
+          font-weight:bold;
+          text-align:center;
+          padding:6px;
+          border:1px solid #333;">
           📅 Semaine du <b>${key}</b>
         </td>`;
       tableBody.appendChild(sep);
       lastWeekKey = key;
     }
 
-    // Ajout de la ligne de punch
     tableBody.appendChild(r);
 
-    // Totaux globaux
     totalH += parseFloat(r.children[4].innerText) || 0;
     totalS += parseFloat(r.children[7].innerText) || 0;
   });
@@ -386,7 +368,6 @@ function recalc(){
   totalHoursEl.textContent  = totalH.toFixed(2);
   totalSalaryEl.textContent = totalS.toFixed(2);
 
-  // Sauvegarder l'état trié + séparateurs
   saveData();
 }
 
