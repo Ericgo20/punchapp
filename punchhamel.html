@@ -1,12 +1,58 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<title>Punch Hamel ❄</title>
+<!-- iPhone SE -->
+<link rel="apple-touch-startup-image" href="splash/launch-640x1136.png"
+ media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)">
 
-<!-- PWA -->
+<!-- iPhone 6/7/8 -->
+<link rel="apple-touch-startup-image" href="splash/launch-750x1334.png"
+ media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)">
+
+<!-- iPhone XR / 11 -->
+<link rel="apple-touch-startup-image" href="splash/launch-828x1792.png"
+ media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)">
+
+<!-- iPhone X / XS / 11 Pro -->
+<link rel="apple-touch-startup-image" href="splash/launch-1125x2436.png"
+ media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)">
+
+<!-- iPhone 12 / 13 / 14 -->
+<link rel="apple-touch-startup-image" href="splash/launch-1170x2532.png"
+ media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)">
+
+<!-- iPhone XS Max / 11 Pro Max -->
+<link rel="apple-touch-startup-image" href="splash/launch-1242x2688.png"
+ media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)">
+
+<!-- iPhone 12/13/14 Pro Max -->
+<link rel="apple-touch-startup-image" href="splash/launch-1284x2778.png"
+ media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)">
+
+<!-- iPhone 15 Pro Max -->
+<link rel="apple-touch-startup-image" href="splash/launch-1290x2796.png"
+ media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)">
+
+<!-- iPad 9.7" -->
+<link rel="apple-touch-startup-image" href="splash/launch-1536x2048.png"
+ media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)">
+
+<!-- iPad Pro 10.5" -->
+<link rel="apple-touch-startup-image" href="splash/launch-1668x2224.png"
+ media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2)">
+
+<!-- iPad Pro 11" -->
+<link rel="apple-touch-startup-image" href="splash/launch-1668x2388.png"
+ media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2)">
+
+<!-- iPad Pro 12.9" -->
+<link rel="apple-touch-startup-image" href="splash/launch-2048x2732.png"
+ media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)">
+<meta charset="UTF-8">
+<title>Punch Hamel ❄ — Calcul de salaire</title>
+
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#111111">
+<meta name="theme-color" content="#111">
 
 <style>
 :root{
@@ -93,17 +139,16 @@ th,td{
 </style>
 
 <script>
-// Toggle thème + sauvegarde
+// toggle thème
 function toggleTheme(){
   document.body.classList.toggle('light');
   const mode = document.body.classList.contains('light') ? 'light' : 'dark';
   localStorage.setItem('theme', mode);
 }
 
-// Service worker PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    navigator.serviceWorker.register('sw.js');
   });
 }
 </script>
@@ -112,33 +157,23 @@ if ('serviceWorker' in navigator) {
 <body>
 
 <div class="container">
-  <h2>Calcul heures & salaire</h2>
+  <h2>Punch Hamel ❄ — Calcul de salaire</h2>
 
   <button onclick="toggleTheme()">Mode sombre / clair</button>
   <button onclick="exportCSV()">Exporter CSV</button>
 
   <div class="card">
-    Taux horaire ($/h)
-    <input type="number" id="rate" value="35" style="width:80px;">
+    <label>Taux horaire ($/h)</label>
+    <input type="number" id="rate" value="35" style="width:80px;"><br><br>
 
-    <br><br>
-
-    Date
-    <input type="date" id="date">
-
-    Entrée
-    <select id="in"></select>
-
-    Sortie
-    <select id="out"></select>
-
-    Pause (minutes)
-    <input type="number" id="pause" value="0" style="width:80px;">
+    Date <input type="date" id="date">
+    Entrée <select id="in"></select>
+    Sortie <select id="out"></select>
+    Pause (min) <input type="number" id="pause" value="0" style="width:80px;">
 
     <div class="info-prime">
       Prime nuit : 2$/h (19h → 07h) • Prime fin semaine : 5$/h (ven 17h → lun 05h)
     </div>
-
     <br>
 
     <button onclick="addShift()">Ajouter le shift</button>
@@ -164,124 +199,99 @@ if ('serviceWorker' in navigator) {
     <div class="recap">
       <b>Récapitulatif</b><br>
       Total heures : <span id="th">0.00</span> h<br>
-      Total salaire brut : <span id="ts">0.00</span> $
+      Total heures nuit : <span id="tn">0.00</span> h<br>
+      Total fin semaine : <span id="twe">0.00</span> h<br>
+      <div id="salaryBox">Total salaire brut : <span id="ts">0.00</span> $</div>
+      <br>
+      <button onclick="toggleSalary()">👁️ Masquer salaire</button>
     </div>
   </div>
 </div>
 
 <script>
-// Références DOM
+// ========== RÉFÉRENCES DOM ==========
 const inSelect      = document.getElementById('in');
 const outSelect     = document.getElementById('out');
 const dateInput     = document.getElementById('date');
 const pauseInput    = document.getElementById('pause');
 const rateInput     = document.getElementById('rate');
 const tableBody     = document.querySelector('#table tbody');
-const totalHoursEl  = document.getElementById('th');
-const totalSalaryEl = document.getElementById('ts');
 
-// Génération des heures 00 / 15 / 30 / 45
-function populateTimeSelect(select){
-  for (let h = 0; h < 24; h++) {
-    for (let m of [0,15,30,45]) {
+const totalH   = document.getElementById('th');
+const totalN   = document.getElementById('tn');
+const totalW   = document.getElementById('twe');
+const totalS   = document.getElementById('ts');
+const salaryBox= document.getElementById('salaryBox');
+
+let salaryHidden = false;
+
+// Génère les heures 00 / 15 / 30 / 45
+function populateTimeSelect(sel){
+  for(let h=0;h<24;h++){
+    for(let m of [0,15,30,45]){
       const HH = String(h).padStart(2,'0');
       const MM = String(m).padStart(2,'0');
-      const opt = document.createElement('option');
-      opt.value = `${HH}:${MM}`;
-      opt.textContent = `${HH}:${MM}`;
-      select.appendChild(opt);
+      let op = document.createElement("option");
+      op.value = `${HH}:${MM}`;
+      op.textContent = `${HH}:${MM}`;
+      sel.appendChild(op);
     }
   }
 }
 
-// Création d'un select de temps pour l'édition
-function createTimeSelect(selected){
-  const s = document.createElement('select');
-  populateTimeSelect(s);
-  if (selected) s.value = selected;
-  return s;
+function overlap(a,b,c,d){
+  const start = Math.max(a,c);
+  const end = Math.min(b,d);
+  return end > start ? (end-start)/36e5 : 0;
 }
 
-// Différence en heures
-const hoursDiff = (a,b) => (b - a) / 36e5;
-
-// Chevauchement de deux intervalles de temps
-function overlap(startA, endA, startB, endB){
-  const start = Math.max(startA, startB);
-  const end   = Math.min(endA, endB);
-  return end > start ? hoursDiff(start, end) : 0;
+// Fenêtre nuit 19h-07h
+function nightWindow(startDate){
+  const ns = new Date(startDate);
+  ns.setHours(19,0,0,0);
+  const ne = new Date(startDate);
+  ne.setDate(ne.getDate()+1);
+  ne.setHours(7,0,0,0);
+  return [ns,ne];
 }
 
-// Fenêtre weekend : vendredi 17h → lundi 05h
+// Fenêtre weekend ven 17h → lun 05h
 function weekendWindow(startDate){
   const d = new Date(startDate);
-  const day = d.getDay(); // 0 = dimanche
+  const day = d.getDay();
   const fri = new Date(d);
-  const offset = (day - 5 + 7) % 7; // nb de jours à remonter pour vendredi
+  const offset = (day - 5 + 7) % 7;
   fri.setDate(d.getDate() - offset);
   fri.setHours(17,0,0,0);
 
   const mon = new Date(fri);
-  mon.setDate(fri.getDate() + 3);
+  mon.setDate(fri.getDate()+3);
   mon.setHours(5,0,0,0);
 
-  return [fri, mon];
+  return [fri,mon];
 }
-
-// Fenêtre nuit : 19h → 07h
-function nightWindow(startDate){
-  const ns = new Date(startDate);
-  ns.setHours(19,0,0,0);
-
-  const ne = new Date(startDate);
-  ne.setDate(ne.getDate() + 1);
-  ne.setHours(7,0,0,0);
-
-  return [ns, ne];
-}
-
-// Ajouter un shift
-function addShift(){
-  const d = dateInput.value;
-  const tin  = inSelect.value;
-  const tout = outSelect.value;
-  const pauseMin = parseFloat(pauseInput.value) || 0;
-  const rate = parseFloat(rateInput.value) || 0;
-
-  if (!d || !tin || !tout) {
-    alert("Veuillez saisir la date, l'entrée et la sortie.");
-    return;
-  }
-
-  const row = buildRow(d,tin,tout,pauseMin,rate);
-  tableBody.appendChild(row);
-  recalc();
-}
-
-// Construit une ligne de tableau (tr) à partir des données de punch
+// Construction d'une ligne
 function buildRow(d,tin,tout,pauseMin,rate){
   let start = new Date(`${d}T${tin}`);
   let end   = new Date(`${d}T${tout}`);
-  if (end <= start) end.setDate(end.getDate() + 1);
+  if(end <= start) end.setDate(end.getDate()+1);
 
-  const totalHours = hoursDiff(start, end) - (pauseMin / 60);
+  const totalHours = (end - start)/36e5 - (pauseMin/60);
 
-  const [wStart, wEnd] = weekendWindow(start);
-  const weekendHours = overlap(start.getTime(), end.getTime(), wStart.getTime(), wEnd.getTime());
+  const [wStart,wEnd] = weekendWindow(start);
+  const weekendHours = overlap(start.getTime(),end.getTime(),wStart.getTime(),wEnd.getTime());
 
-  const [nStart, nEnd] = nightWindow(start);
-  const nightHours = overlap(start.getTime(), end.getTime(), nStart.getTime(), nEnd.getTime());
+  const [nStart,nEnd] = nightWindow(start);
+  const nightHours = overlap(start.getTime(),end.getTime(),nStart.getTime(),nEnd.getTime());
 
-  const weekendBonus = 5;
-  const nightBonus   = 2;
+  const salary = 
+      totalHours * rate +
+      weekendHours * 5 +
+      nightHours * 2;
 
-  const salary =
-    totalHours  * rate +
-    weekendHours * weekendBonus +
-    nightHours   * nightBonus;
+  let tr = document.createElement("tr");
+  tr.dataset.type = "shift";
 
-  const tr = document.createElement('tr');
-  tr.dataset.type = "shift"; // pour le tri plus tard
   tr.innerHTML = `
     <td>${d}</td>
     <td>${tin}</td>
@@ -290,7 +300,7 @@ function buildRow(d,tin,tout,pauseMin,rate){
     <td>${totalHours.toFixed(2)}</td>
     <td>${nightHours.toFixed(2)}</td>
     <td>${weekendHours.toFixed(2)}</td>
-    <td>${salary.toFixed(2)}$</td>
+    <td>${salary.toFixed(2)}</td>
     <td>
       <button onclick="editRow(this)">✏</button>
       <button onclick="deleteRow(this)">X</button>
@@ -299,276 +309,277 @@ function buildRow(d,tin,tout,pauseMin,rate){
   return tr;
 }
 
-// Supprimer une ligne
+// Ajouter shift
+function addShift(){
+  const d = dateInput.value;
+  const tin = inSelect.value;
+  const tout = outSelect.value;
+  const pauseMin = parseFloat(pauseInput.value)||0;
+  const rate = parseFloat(rateInput.value)||0;
+
+  if(!d || !tin || !tout){
+    alert("Données incomplètes");
+    return;
+  }
+
+  const row = buildRow(d,tin,tout,pauseMin,rate);
+  tableBody.appendChild(row);
+  recalc();
+}
+
+// Suppression ligne
 function deleteRow(btn){
-  const tr = btn.closest('tr');
-  tr.remove();
+  btn.closest("tr").remove();
   recalc();
 }
 
 // Édition inline
 function editRow(btn){
-  const tr = btn.closest('tr');
-  if (tr.dataset.editing === "1") return;
-  tr.dataset.editing = "1";
+  const tr = btn.closest("tr");
+  const c = tr.children;
 
-  const cells = tr.children;
-  const oldData = {
-    date : cells[0].innerText,
-    in   : cells[1].innerText,
-    out  : cells[2].innerText,
-    pause: cells[3].innerText
+  const old = {
+    d : c[0].innerText,
+    tin: c[1].innerText,
+    tout: c[2].innerText,
+    pause: c[3].innerText
   };
-  tr.dataset.orig = JSON.stringify(oldData);
+  tr.dataset.old = JSON.stringify(old);
 
   // Date
-  const dateInput = document.createElement('input');
-  dateInput.type = "date";
-  dateInput.value = oldData.date;
-  cells[0].innerHTML = "";
-  cells[0].appendChild(dateInput);
+  let dIn = document.createElement("input");
+  dIn.type="date";
+  dIn.value = old.d;
+  c[0].innerHTML="";
+  c[0].appendChild(dIn);
 
   // Entrée
-  const inSel = createTimeSelect(oldData.in);
-  cells[1].innerHTML = "";
-  cells[1].appendChild(inSel);
+  let tIn = document.createElement("select");
+  populateTimeSelect(tIn);
+  tIn.value = old.tin;
+  c[1].innerHTML="";
+  c[1].appendChild(tIn);
 
   // Sortie
-  const outSel = createTimeSelect(oldData.out);
-  cells[2].innerHTML = "";
-  cells[2].appendChild(outSel);
+  let tOut = document.createElement("select");
+  populateTimeSelect(tOut);
+  tOut.value = old.tout;
+  c[2].innerHTML="";
+  c[2].appendChild(tOut);
 
   // Pause
-  const pauseInput = document.createElement('input');
-  pauseInput.type = "number";
-  pauseInput.value = oldData.pause;
-  pauseInput.style.width = "70px";
-  cells[3].innerHTML = "";
-  cells[3].appendChild(pauseInput);
+  let p = document.createElement("input");
+  p.type="number";
+  p.value = old.pause;
+  c[3].innerHTML="";
+  c[3].appendChild(p);
 
-  // Boutons Save / Cancel
-  cells[8].innerHTML = `
+  c[8].innerHTML = `
     <button onclick="saveEdit(this)">✔</button>
     <button onclick="cancelEdit(this)">↩</button>
   `;
 }
 
+// Sauvegarde modification
 function saveEdit(btn){
-  const tr = btn.closest('tr');
-  const cells = tr.children;
+  const tr = btn.closest("tr");
+  const c = tr.children;
 
-  const d    = cells[0].querySelector('input').value;
-  const tin  = cells[1].querySelector('select').value;
-  const tout = cells[2].querySelector('select').value;
-  const pauseMin = parseFloat(cells[3].querySelector('input').value) || 0;
-  const rate = parseFloat(rateInput.value) || 0;
+  const d    = c[0].querySelector("input").value;
+  const tin  = c[1].querySelector("select").value;
+  const tout = c[2].querySelector("select").value;
+  const pause= parseFloat(c[3].querySelector("input").value)||0;
 
-  // Reconstruire les données avec buildRow (mais sans créer une nouvelle ligne)
+  const rate = parseFloat(rateInput.value)||0;
+
   let start = new Date(`${d}T${tin}`);
   let end   = new Date(`${d}T${tout}`);
-  if (end <= start) end.setDate(end.getDate() + 1);
+  if(end <= start) end.setDate(end.getDate()+1);
 
-  const totalHours = hoursDiff(start, end) - (pauseMin / 60);
+  const totalHours = (end - start)/36e5 - (pause/60);
 
-  const [wStart, wEnd] = weekendWindow(start);
-  const weekendHours = overlap(start.getTime(), end.getTime(), wStart.getTime(), wEnd.getTime());
+  const [wStart,wEnd] = weekendWindow(start);
+  const weekendHours = overlap(start.getTime(),end.getTime(),wStart.getTime(),wEnd.getTime());
 
-  const [nStart, nEnd] = nightWindow(start);
-  const nightHours = overlap(start.getTime(), end.getTime(), nStart.getTime(), nEnd.getTime());
-
-  const weekendBonus = 5;
-  const nightBonus   = 2;
+  const [nStart,nEnd] = nightWindow(start);
+  const nightHours = overlap(start.getTime(),end.getTime(),nStart.getTime(),nEnd.getTime());
 
   const salary =
-    totalHours  * rate +
-    weekendHours * weekendBonus +
-    nightHours   * nightBonus;
+      totalHours * rate +
+      weekendHours * 5 +
+      nightHours * 2;
 
-  // Réécrire les cellules en mode "lecture"
-  cells[0].innerText = d;
-  cells[1].innerText = tin;
-  cells[2].innerText = tout;
-  cells[3].innerText = pauseMin;
-  cells[4].innerText = totalHours.toFixed(2);
-  cells[5].innerText = nightHours.toFixed(2);
-  cells[6].innerText = weekendHours.toFixed(2);
-  cells[7].innerText = salary.toFixed(2) + "$";
-  cells[8].innerHTML = `
+  c[0].innerText = d;
+  c[1].innerText = tin;
+  c[2].innerText = tout;
+  c[3].innerText = pause;
+  c[4].innerText = totalHours.toFixed(2);
+  c[5].innerText = nightHours.toFixed(2);
+  c[6].innerText = weekendHours.toFixed(2);
+  c[7].innerText = salary.toFixed(2);
+
+  c[8].innerHTML = `
     <button onclick="editRow(this)">✏</button>
     <button onclick="deleteRow(this)">X</button>
   `;
-
-  tr.dataset.editing = "0";
   recalc();
 }
 
+// Annuler modification
 function cancelEdit(btn){
-  const tr = btn.closest('tr');
-  const orig = JSON.parse(tr.dataset.orig || "{}");
-  const cells = tr.children;
+  const tr = btn.closest("tr");
+  const old = JSON.parse(tr.dataset.old);
+  const c = tr.children;
 
-  if(orig.date){
-    cells[0].innerText = orig.date;
-    cells[1].innerText = orig.in;
-    cells[2].innerText = orig.out;
-    cells[3].innerText = orig.pause;
-  }
+  c[0].innerText = old.d;
+  c[1].innerText = old.tin;
+  c[2].innerText = old.tout;
+  c[3].innerText = old.pause;
 
-  cells[8].innerHTML = `
+  c[8].innerHTML = `
     <button onclick="editRow(this)">✏</button>
     <button onclick="deleteRow(this)">X</button>
   `;
-  tr.dataset.editing = "0";
   recalc();
 }
 
-// TRI + séparation par semaine + total semaine
+// Masquer / afficher salaire
+function toggleSalary(){
+  salaryHidden = !salaryHidden;
+
+  document.querySelectorAll("#table td:nth-child(8), #table th:nth-child(8)")
+    .forEach(el => el.style.display = salaryHidden ? "none" : "");
+
+  salaryBox.style.display = salaryHidden ? "none" : "";
+
+  document.querySelector("button[onclick='toggleSalary()']").innerText =
+    salaryHidden ? "👁️ Afficher salaire" : "👁️ Masquer salaire";
+
+  recalc();
+}
+
+// ==== RECALCUL + TRI + GROUPEMENT PAR SEMAINE (DIMANCHE) ====
 function recalc(){
-  let allRows = [...tableBody.querySelectorAll("tr")];
-  let dataRows = allRows.filter(r => r.dataset.type === "shift");
+  let rows = [...tableBody.querySelectorAll("tr")].filter(r => r.dataset.type==="shift");
 
-  // tri par date
-  dataRows.sort((a,b)=>{
-    let da = new Date(a.children[0].innerText);
-    let db = new Date(b.children[0].innerText);
-    return da - db;
-  });
+  // TRI par date
+  rows.sort((a,b)=>
+    new Date(a.children[0].innerText) - new Date(b.children[0].innerText)
+  );
 
-  tableBody.innerHTML = "";
+  tableBody.innerHTML="";
 
-  let lastWeekKey = null;
-  let weeklyHours = 0;
-  let weeklySalary = 0;
-  let totalH = 0;
-  let totalS = 0;
+  let lastWeek=null;
+  let weekHours=0, weekSalary=0;
+  let totH=0, totN=0, totW=0, totS=0;
 
-  dataRows.forEach((r,idx)=>{
-    let date = new Date(r.children[0].innerText);
+  rows.forEach((r,i)=>{
+    const d = new Date(r.children[0].innerText);
 
-    // Lundi de la semaine
-    let weekStart = new Date(date);
-    weekStart.setDate(date.getDate() - ((date.getDay()+6)%7));
+    // DIMANCHE comme début — méthode simple
+    let weekStart = new Date(d);
+    weekStart.setDate(d.getDate() - d.getDay());  // 👈 CORRECTION DIMANCHE
+
     let key = weekStart.toISOString().slice(0,10);
 
-    if(key !== lastWeekKey){
-      // si on change de semaine, on écrit le total de la semaine précédente
-      if(lastWeekKey !== null){
-        const sumRow = document.createElement("tr");
-        sumRow.innerHTML = `
-          <td colspan="9" style="background:#222;text-align:center;
-               padding:6px;border:1px solid #444;color:#ddd;">
-            ➤ Total semaine : <b>${weeklyHours.toFixed(2)} h</b>
-            — <b>${weeklySalary.toFixed(2)} $</b>
-          </td>`;
-        tableBody.appendChild(sumRow);
+    if(key !== lastWeek){
+      if(lastWeek !== null){
+        addWeekFooter(weekHours, weekSalary);
       }
-
-      const sep = document.createElement("tr");
-      sep.innerHTML = `
-        <td colspan="9" style="background:#00000055;font-weight:bold;
-             text-align:center;padding:6px;border:1px solid #333;">
-          📅 Semaine du <b>${key}</b>
-        </td>`;
-      tableBody.appendChild(sep);
-
-      weeklyHours = 0;
-      weeklySalary = 0;
-      lastWeekKey = key;
+      addWeekHeader(key);
+      weekHours=0;
+      weekSalary=0;
+      lastWeek = key;
     }
 
     tableBody.appendChild(r);
 
-    const h = parseFloat(r.children[4].innerText) || 0;
-    const s = parseFloat(r.children[7].innerText) || 0;
-    weeklyHours += h;
-    weeklySalary += s;
-    totalH += h;
-    totalS += s;
+    let h  = parseFloat(r.children[4].innerText);
+    let hn = parseFloat(r.children[5].innerText);
+    let hw = parseFloat(r.children[6].innerText);
+    let s  = parseFloat(r.children[7].innerText);
 
-    // si dernière ligne => ajouter total de la semaine en cours
-    if(idx === dataRows.length - 1){
-      const sumRow = document.createElement("tr");
-      sumRow.innerHTML = `
-        <td colspan="9" style="background:#222;text-align:center;
-             padding:6px;border:1px solid #444;color:#ddd;">
-          ➤ Total semaine : <b>${weeklyHours.toFixed(2)} h</b>
-          — <b>${weeklySalary.toFixed(2)} $</b>
-        </td>`;
-      tableBody.appendChild(sumRow);
+    weekHours += h;
+    weekSalary+= s;
+
+    totH += h;
+    totN += hn;
+    totW += hw;
+    totS += s;
+
+    if(i===rows.length-1){
+      addWeekFooter(weekHours, weekSalary);
     }
   });
 
-  totalHoursEl.textContent  = totalH.toFixed(2);
-  totalSalaryEl.textContent = totalS.toFixed(2);
-
-  saveData();
+  totalH.textContent = totH.toFixed(2);
+  totalN.textContent = totN.toFixed(2);
+  totalW.textContent = totW.toFixed(2);
+  totalS.textContent = totS.toFixed(2);
 }
 
-// Effacer tout
-function clearAll(){
-  if (!confirm("Effacer tous les punchs ?")) return;
-  tableBody.innerHTML = "";
-  recalc();
+function addWeekHeader(key){
+  let tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td colspan="9" style="background:#00000055;font-weight:bold;text-align:center;">
+      📅 Semaine du <b>${key}</b>
+    </td>`;
+  tableBody.appendChild(tr);
 }
 
-// Sauvegarde auto
-function saveData(){
-  localStorage.setItem('punch_rows', tableBody.innerHTML);
-  localStorage.setItem('punch_rate', rateInput.value);
-  localStorage.setItem('theme', document.body.classList.contains('light')?'light':'dark');
-}
+function addWeekFooter(h,s){
+  let txt = salaryHidden 
+    ? `➤ Total semaine : <b>${h.toFixed(2)} h</b>`
+    : `➤ Total semaine : <b>${h.toFixed(2)} h</b> — <b>${s.toFixed(2)} $</b>`;
 
-// Chargement au démarrage
-function loadData(){
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'light') {
-    document.body.classList.add('light');
-  }
-
-  const rows = localStorage.getItem('punch_rows');
-  if (rows) {
-    tableBody.innerHTML = rows;
-  }
-
-  const savedRate = localStorage.getItem('punch_rate');
-  if (savedRate) {
-    rateInput.value = savedRate;
-  }
-
-  recalc();
+  let tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td colspan="9" style="background:#222;text-align:center;color:#ddd;">
+      ${txt}
+    </td>`;
+  tableBody.appendChild(tr);
 }
 
 // Export CSV
 function exportCSV(){
-  const header = ["Date","Entrée","Sortie","Pause","Heures","Nuit","Weekend","Salaire"];
-  const rows = [header];
+  let rows = [["Date","Entrée","Sortie","Pause","Heures","Nuit","Weekend","Salaire"]];
 
-  tableBody.querySelectorAll('tr').forEach(tr => {
-    if(tr.dataset.type === "shift"){
-      const cols = Array.from(tr.children).slice(0,8).map(td => td.textContent.replace('$',''));
-      rows.push(cols);
+  tableBody.querySelectorAll("tr").forEach(tr=>{
+    if(tr.dataset.type==="shift"){
+      rows.push([
+        tr.children[0].innerText,
+        tr.children[1].innerText,
+        tr.children[2].innerText,
+        tr.children[3].innerText,
+        tr.children[4].innerText,
+        tr.children[5].innerText,
+        tr.children[6].innerText,
+        tr.children[7].innerText
+      ]);
     }
   });
 
-  const csv = rows.map(r => r.join(",")).join("\n");
-  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
-  const url  = URL.createObjectURL(blob);
+  let csv = rows.map(r=>r.join(",")).join("\n");
+  let blob = new Blob([csv],{type:"text/csv"});
+  let url = URL.createObjectURL(blob);
 
-  const a = document.createElement('a');
+  let a = document.createElement("a");
   a.href = url;
   a.download = "punch.csv";
   a.click();
-
   URL.revokeObjectURL(url);
 }
 
-// Initialisation
-document.addEventListener('DOMContentLoaded', () => {
+// Chargement
+document.addEventListener("DOMContentLoaded",()=>{
   populateTimeSelect(inSelect);
   populateTimeSelect(outSelect);
-  loadData();
+
+  let theme = localStorage.getItem("theme");
+  if(theme==="light") document.body.classList.add("light");
+
+  recalc();
 });
 </script>
-
 </body>
 </html>
